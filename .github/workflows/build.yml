@@ -28,11 +28,16 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
+      - name: Sign APK
+        run: |
+          keytool -genkey -v -keystore keystore.jks -alias jimongramm -keyalg RSA -keysize 2048 -validity 10000 -storepass jimongramm123 -keypass jimongramm123 -dname "CN=JimonGramm, OU=Mobile, O=JimonGroup, L=Almaty, S=Almaty, C=KZ"
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks keystore.jks --ks-key-alias jimongramm --ks-pass pass:jimongramm123 --key-pass pass:jimongramm123 --out app-release-signed.apk app/build/outputs/apk/release/app-release-unsigned.apk
+
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: JimonGramm-APK
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          path: app-release-signed.apk
           retention-days: 30
 
       - name: Create GitHub Release
@@ -41,7 +46,7 @@ jobs:
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: JimonGramm v1.0.${{ github.run_number }}
-          files: app/build/outputs/apk/release/app-release-unsigned.apk
+          files: app-release-signed.apk
           generate_release_notes: false
           body: |
             📱 JimonGramm Android App
