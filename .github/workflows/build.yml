@@ -1,4 +1,4 @@
-name: Build APK
+name: Build AAB
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -25,19 +24,31 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-
-      - name: Sign APK
+      - name: Generate Keystore
         run: |
-          keytool -genkey -v -keystore keystore.jks -alias jimongramm -keyalg RSA -keysize 2048 -validity 10000 -storepass jimongramm123 -keypass jimongramm123 -dname "CN=JimonGramm, OU=Mobile, O=JimonGroup, L=Almaty, S=Almaty, C=KZ"
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign --ks keystore.jks --ks-key-alias jimongramm --ks-pass pass:jimongramm123 --key-pass pass:jimongramm123 --out app-release-signed.apk app/build/outputs/apk/release/app-release-unsigned.apk
+          keytool -genkey -v -keystore keystore.jks -alias jimongramm \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass jimongramm123 -keypass jimongramm123 \
+            -dname "CN=JimonGramm, OU=Mobile, O=JimonGroup, L=Almaty, S=Almaty, C=KZ"
 
-      - name: Upload APK artifact
+      - name: Build Release AAB
+        run: ./gradlew bundleRelease
+
+      - name: Sign AAB
+        run: |
+          jarsigner -verbose \
+            -keystore keystore.jks \
+            -storepass jimongramm123 \
+            -keypass jimongramm123 \
+            -signedjar app-release-signed.aab \
+            app/build/outputs/bundle/release/app-release.aab \
+            jimongramm
+
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JimonGramm-APK
-          path: app-release-signed.apk
+          name: JimonGramm-AAB
+          path: app-release-signed.aab
           retention-days: 30
 
       - name: Create GitHub Release
@@ -46,14 +57,9 @@ jobs:
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: JimonGramm v1.0.${{ github.run_number }}
-          files: app-release-signed.apk
+          files: app-release-signed.aab
           generate_release_notes: false
           body: |
-            📱 JimonGramm Android App
-            
-            **Установка:**
-            1. Скачайте APK файл
-            2. На телефоне: Настройки → Безопасность → Разрешить установку из неизвестных источников
-            3. Откройте скачанный файл и установите
+            📱 JimonGramm AAB для Google Play
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
