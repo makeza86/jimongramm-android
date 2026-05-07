@@ -23,7 +23,10 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
-
+      - name: Create ADI token
+        run: |
+          mkdir -p app/src/main/assets
+          echo "com.android.vending.derived.apk.id=CVWTEUMTCNMBQAAAAAAAAAAAA" > app/src/main/assets/adi-registration.properties
       - name: Generate Keystore
         run: |
           keytool -genkey -v -keystore keystore.jks -alias jimongramm \
