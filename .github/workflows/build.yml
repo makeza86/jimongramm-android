@@ -29,12 +29,9 @@ jobs:
           mkdir -p app/src/main/assets
           echo "com.android.vending.derived.apk.id=CVWTEUMTCNMBQAAAAAAAAAAAA" > app/src/main/assets/adi-registration.properties
 
-      - name: Generate Keystore
+      - name: Restore Keystore
         run: |
-          keytool -genkey -v -keystore keystore.jks -alias jimongramm \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass jimongramm123 -keypass jimongramm123 \
-            -dname "CN=JimonGramm, OU=Mobile, O=JimonGroup, L=Almaty, S=Almaty, C=KZ"
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
       - name: Build Release AAB
         run: ./gradlew bundleRelease
