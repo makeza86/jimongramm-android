@@ -23,10 +23,12 @@ jobs:
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
+
       - name: Create ADI token
         run: |
           mkdir -p app/src/main/assets
           echo "com.android.vending.derived.apk.id=CVWTEUMTCNMBQAAAAAAAAAAAA" > app/src/main/assets/adi-registration.properties
+
       - name: Generate Keystore
         run: |
           keytool -genkey -v -keystore keystore.jks -alias jimongramm \
@@ -36,6 +38,7 @@ jobs:
 
       - name: Build Release AAB
         run: ./gradlew bundleRelease
+
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
@@ -48,8 +51,9 @@ jobs:
             -signedjar app-release-signed.aab \
             app/build/outputs/bundle/release/app-release.aab \
             jimongramm
-            - name: Sign APK
-         run: |
+
+      - name: Sign APK
+        run: |
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
             --ks keystore.jks \
             --ks-key-alias jimongramm \
@@ -72,8 +76,8 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: JimonGramm v1.0.${{ github.run_number }}
           files: |
-              app-release-signed.aab
-              app-release-signed.apk
+            app-release-signed.aab
+            app-release-signed.apk
           generate_release_notes: false
           body: |
             📱 JimonGramm AAB для Google Play
