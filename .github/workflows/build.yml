@@ -39,16 +39,6 @@ jobs:
       - name: Build Release APK
         run: ./gradlew assembleRelease
 
-      - name: Sign AAB
-        run: |
-          jarsigner -verbose \
-            -keystore keystore.jks \
-            -storepass jimongramm123 \
-            -keypass jimongramm123 \
-            -signedjar app-release-signed.aab \
-            app/build/outputs/bundle/release/app-release.aab \
-            jimongramm
-
       - name: Sign APK
         run: |
           $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
@@ -63,7 +53,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: JimonGramm-AAB
-          path: app-release-signed.aab
+          path: app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
 
       - name: Create GitHub Release
@@ -73,10 +63,5 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: JimonGramm v1.0.${{ github.run_number }}
           files: |
-            app-release-signed.aab
-            app-release-signed.apk
-          generate_release_notes: false
-          body: |
-            📱 JimonGramm AAB для Google Play
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            app/build/outputs/bundle/release/app-release.aab
+            app-
