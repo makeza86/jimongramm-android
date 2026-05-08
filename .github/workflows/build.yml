@@ -33,37 +33,27 @@ jobs:
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore.jks
 
-      - name: Build Release AAB
-        run: ./gradlew bundleRelease
-
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
-
-      - name: Sign AAB
+      - name: Build and Sign AAB
         run: |
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
-            --ks keystore.jks \
-            --ks-key-alias jimongramm \
-            --ks-pass pass:jimongramm123 \
-            --key-pass pass:jimongramm123 \
-            --out app-release-signed.aab \
-            app/build/outputs/bundle/release/app-release.aab
+          ./gradlew bundleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
+            -Pandroid.injected.signing.store.password=jimongramm123 \
+            -Pandroid.injected.signing.key.alias=jimongramm \
+            -Pandroid.injected.signing.key.password=jimongramm123
 
-      - name: Sign APK
+      - name: Build and Sign APK
         run: |
-          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
-            --ks keystore.jks \
-            --ks-key-alias jimongramm \
-            --ks-pass pass:jimongramm123 \
-            --key-pass pass:jimongramm123 \
-            --out app-release-signed.apk \
-            app/build/outputs/apk/release/app-release-unsigned.apk
+          ./gradlew assembleRelease \
+            -Pandroid.injected.signing.store.file=$(pwd)/keystore.jks \
+            -Pandroid.injected.signing.store.password=jimongramm123 \
+            -Pandroid.injected.signing.key.alias=jimongramm \
+            -Pandroid.injected.signing.key.password=jimongramm123
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
           name: JimonGramm-AAB
-          path: app-release-signed.aab
+          path: app/build/outputs/bundle/release/app-release.aab
           retention-days: 30
 
       - name: Create GitHub Release
@@ -73,8 +63,8 @@ jobs:
           tag_name: v1.0.${{ github.run_number }}
           name: JimonGramm v1.0.${{ github.run_number }}
           files: |
-            app-release-signed.aab
-            app-release-signed.apk
+            app/build/outputs/bundle/release/app-release.aab
+            app/build/outputs/apk/release/app-release-unsigned.apk
           generate_release_notes: false
           body: |
             📱 JimonGramm для Google Play
