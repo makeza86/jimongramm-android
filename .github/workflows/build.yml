@@ -41,13 +41,13 @@ jobs:
 
       - name: Sign AAB
         run: |
-          jarsigner -verbose \
-            -keystore keystore.jks \
-            -storepass jimongramm123 \
-            -keypass jimongramm123 \
-            -signedjar app-release-signed.aab \
-            app/build/outputs/bundle/release/app-release.aab \
-            jimongramm
+          $ANDROID_HOME/build-tools/34.0.0/apksigner sign \
+            --ks keystore.jks \
+            --ks-key-alias jimongramm \
+            --ks-pass pass:jimongramm123 \
+            --key-pass pass:jimongramm123 \
+            --out app-release-signed.aab \
+            app/build/outputs/bundle/release/app-release.aab
 
       - name: Sign APK
         run: |
