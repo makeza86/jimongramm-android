@@ -4,10 +4,10 @@ plugins {
 
 android {
     compileSdk 34
-    namespace 'com.jimongroup.jimongramm'
+    namespace 'com.jimongramm.app'
 
     defaultConfig {
-        applicationId "com.jimongroup.jimongramm"
+        applicationId "com.jimongramm.app"
         minSdk 21
         targetSdk 34
         versionCode 1
