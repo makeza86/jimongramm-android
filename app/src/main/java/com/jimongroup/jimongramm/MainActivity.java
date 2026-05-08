@@ -1,4 +1,4 @@
-package com.jimongroup.jimongramm;
+package com.jimongramm.app;
 
 import android.app.Activity;
 import android.os.Bundle;
