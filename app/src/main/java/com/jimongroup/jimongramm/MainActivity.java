@@ -121,7 +121,11 @@ public class MainActivity extends Activity {
                 }
                 speechRecognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
                 speechRecognizer.setRecognitionListener(new android.speech.RecognitionListener() {
-                    @Override public void onReadyForSpeech(android.os.Bundle p) {}
+                    @Override public void onReadyForSpeech(android.os.Bundle p) {
+                    webView.post(() -> webView.evaluateJavascript(
+                   "document.getElementById('voice-transcript') && (document.getElementById('voice-transcript').textContent = 'Слушаю...')", null
+                     ));
+                   }
                     @Override public void onBeginningOfSpeech() {}
                     @Override public void onRmsChanged(float v) {}
                     @Override public void onBufferReceived(byte[] b) {}
@@ -148,6 +152,9 @@ public class MainActivity extends Activity {
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU");
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+                intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L);
+                intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L);
                 speechRecognizer.startListening(intent);
             });
         }
