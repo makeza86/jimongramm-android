@@ -46,7 +46,7 @@ public class MainActivity extends Activity {
         settings.setGeolocationEnabled(true);
         settings.setUserAgentString(settings.getUserAgentString() + " JimonGrammApp/1.0");
 
-       // AndroidVoice отключён
+       webView.addJavascriptInterface(new VoiceInterface(), "AndroidVoice");
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(PermissionRequest request) {
-                request.grant(request.getResources());
+                request.grant(new String[]{PermissionRequest.RESOURCE_AUDIO_CAPTURE});
             }
 
             @Override
@@ -114,6 +114,12 @@ public class MainActivity extends Activity {
                 ));
                 return;
             }
+            if (!android.speech.SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) {
+    webView.post(() -> webView.evaluateJavascript(
+        "alert('Speech recognition not available on this device')", null
+    ));
+    return;
+}
 
             runOnUiThread(() -> {
                 if (speechRecognizer != null) {
@@ -150,7 +156,7 @@ public class MainActivity extends Activity {
                 });
                 Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
                 intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU");
+                intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, java.util.Locale.getDefault().toString());
                 intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
                 intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getPackageName());
                 intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L);
