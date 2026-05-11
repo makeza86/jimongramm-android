@@ -13,12 +13,17 @@ import android.net.http.SslError;
 import android.webkit.SslErrorHandler;
 import android.webkit.GeolocationPermissions;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.Manifest;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import java.util.ArrayList;
 
 public class MainActivity extends Activity {
 
     private WebView webView;
     private static final String APP_URL = "https://jimongramm.com";
+    private static final int RECORD_AUDIO_PERMISSION_CODE = 1001;
     private android.speech.SpeechRecognizer speechRecognizer;
 
     @Override
@@ -74,12 +79,42 @@ public class MainActivity extends Activity {
             }
         });
 
+        // Запрашиваем разрешение на микрофон при старте
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                new String[]{Manifest.permission.RECORD_AUDIO},
+                RECORD_AUDIO_PERMISSION_CODE);
+        }
+
         webView.loadUrl(APP_URL);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == RECORD_AUDIO_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Разрешение получено
+            }
+        }
     }
 
     public class VoiceInterface {
         @JavascriptInterface
         public void startListening() {
+            // Проверяем разрешение перед запуском
+            if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.RECORD_AUDIO},
+                    RECORD_AUDIO_PERMISSION_CODE);
+                webView.post(() -> webView.evaluateJavascript(
+                    "window.onAndroidSpeechError && window.onAndroidSpeechError(9)", null
+                ));
+                return;
+            }
+
             runOnUiThread(() -> {
                 if (speechRecognizer != null) {
                     speechRecognizer.destroy();
