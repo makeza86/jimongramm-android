@@ -77,28 +77,48 @@ public class MainActivity extends Activity {
         webView.loadUrl(APP_URL);
     }
 
-    public class VoiceInterface {
-        @JavascriptInterface
-        public void startListening() {
+   private android.speech.SpeechRecognizer speechRecognizer;
+
+public class VoiceInterface {
+    @JavascriptInterface
+    public void startListening() {
+        runOnUiThread(() -> {
+            if (speechRecognizer != null) {
+                speechRecognizer.destroy();
+            }
+            speechRecognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
+            speechRecognizer.setRecognitionListener(new android.speech.RecognitionListener() {
+                @Override public void onReadyForSpeech(android.os.Bundle p) {}
+                @Override public void onBeginningOfSpeech() {}
+                @Override public void onRmsChanged(float v) {}
+                @Override public void onBufferReceived(byte[] b) {}
+                @Override public void onEndOfSpeech() {}
+                @Override public void onPartialResults(android.os.Bundle b) {}
+                @Override public void onEvent(int t, android.os.Bundle b) {}
+                @Override public void onError(int error) {
+                    webView.post(() -> webView.evaluateJavascript(
+                        "window.onAndroidSpeechError && window.onAndroidSpeechError(" + error + ")", null
+                    ));
+                }
+                @Override
+                public void onResults(android.os.Bundle results) {
+                    ArrayList<String> matches = results.getStringArrayList(android.speech.SpeechRecognizer.RESULTS_RECOGNITION);
+                    if (matches != null && !matches.isEmpty()) {
+                        String text = matches.get(0);
+                        webView.post(() -> webView.evaluateJavascript(
+                            "window.onAndroidSpeechResult && window.onAndroidSpeechResult('" + text.replace("'", "\\'") + "')", null
+                        ));
+                    }
+                }
+            });
             Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
             intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU");
-            intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Говорите...");
-            startActivityForResult(intent, SPEECH_REQUEST_CODE);
-        }
+            intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1);
+            speechRecognizer.startListening(intent);
+        });
     }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
-            ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-            if (results != null && !results.isEmpty()) {
-                String text = results.get(0);
-                webView.post(() -> webView.evaluateJavascript(
-                    "window.onAndroidSpeechResult && window.onAndroidSpeechResult('" + text.replace("'", "\\'") + "')", null
-                ));
-            }
-        }
+}
     }
 
     @Override
