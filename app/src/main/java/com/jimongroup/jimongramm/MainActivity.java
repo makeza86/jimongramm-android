@@ -69,7 +69,6 @@ public class MainActivity extends Activity {
             }
 
             @Override
-            @Override
 public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
     handler.cancel();
             }
