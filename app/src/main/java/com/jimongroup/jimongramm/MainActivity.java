@@ -1,9 +1,7 @@
 package com.jimongramm.app;
-
 import android.app.Activity;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
-import android.speech.tts.TextToSpeech;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -15,14 +13,11 @@ import android.net.http.SslError;
 import android.webkit.SslErrorHandler;
 import android.webkit.GeolocationPermissions;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import java.util.ArrayList;
-import java.util.Locale;
 
 public class MainActivity extends Activity {
 
     private WebView webView;
-    private TextToSpeech tts;
     private static final String APP_URL = "https://jimongramm.com";
     private static final int SPEECH_REQUEST_CODE = 100;
 
@@ -30,13 +25,6 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // Инициализация TTS
-        tts = new TextToSpeech(this, status -> {
-            if (status == TextToSpeech.SUCCESS) {
-                tts.setLanguage(new Locale("ru"));
-            }
-        });
 
         webView = findViewById(R.id.webview);
 
@@ -53,7 +41,6 @@ public class MainActivity extends Activity {
         settings.setGeolocationEnabled(true);
         settings.setUserAgentString(settings.getUserAgentString() + " JimonGrammApp/1.0");
 
-        // JavaScript интерфейс
         webView.addJavascriptInterface(new VoiceInterface(), "AndroidVoice");
 
         webView.setWebViewClient(new WebViewClient() {
@@ -69,8 +56,8 @@ public class MainActivity extends Activity {
             }
 
             @Override
-public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-    handler.cancel();
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                handler.cancel();
             }
         });
 
@@ -90,7 +77,6 @@ public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError e
         webView.loadUrl(APP_URL);
     }
 
-    // JavaScript интерфейс для голоса
     public class VoiceInterface {
         @JavascriptInterface
         public void startListening() {
@@ -100,20 +86,6 @@ public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError e
             intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Говорите...");
             startActivityForResult(intent, SPEECH_REQUEST_CODE);
         }
-
-        @JavascriptInterface
-        public void speak(String text) {
-            if (tts != null) {
-                // Убираем теги и эмодзи
-                String clean = text.replaceAll("\\[.*?\\]", "").replaceAll("[^\\p{L}\\p{N}\\s.,!?]", "").trim();
-                tts.speak(clean, TextToSpeech.QUEUE_FLUSH, null, null);
-            }
-        }
-
-        @JavascriptInterface
-        public void stop() {
-            if (tts != null) tts.stop();
-        }
     }
 
     @Override
@@ -122,7 +94,6 @@ public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError e
             ArrayList<String> results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
             if (results != null && !results.isEmpty()) {
                 String text = results.get(0);
-                // Передаём текст в WebView
                 webView.post(() -> webView.evaluateJavascript(
                     "window.onAndroidSpeechResult && window.onAndroidSpeechResult('" + text.replace("'", "\\'") + "')", null
                 ));
@@ -153,10 +124,6 @@ public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError e
 
     @Override
     protected void onDestroy() {
-        if (tts != null) {
-            tts.stop();
-            tts.shutdown();
-        }
         super.onDestroy();
     }
 }
