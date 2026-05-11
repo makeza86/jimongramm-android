@@ -46,7 +46,7 @@ public class MainActivity extends Activity {
         settings.setGeolocationEnabled(true);
         settings.setUserAgentString(settings.getUserAgentString() + " JimonGrammApp/1.0");
 
-        webView.addJavascriptInterface(new VoiceInterface(), "AndroidVoice");
+       // AndroidVoice отключён
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
