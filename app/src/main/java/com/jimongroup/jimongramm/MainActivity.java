@@ -114,12 +114,6 @@ public class MainActivity extends Activity {
                 ));
                 return;
             }
-            if (!android.speech.SpeechRecognizer.isRecognitionAvailable(MainActivity.this)) {
-    webView.post(() -> webView.evaluateJavascript(
-        "alert('Speech recognition not available on this device')", null
-    ));
-    return;
-}
 
             runOnUiThread(() -> {
                 if (speechRecognizer != null) {
