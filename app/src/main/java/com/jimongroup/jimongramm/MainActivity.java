@@ -47,7 +47,7 @@ public class MainActivity extends Activity {
         settings.setUserAgentString(settings.getUserAgentString() + " JimonGrammApp/1.0");
 
        webView.addJavascriptInterface(new VoiceInterface(), "AndroidVoice");
-
+       webView.addJavascriptInterface(new ShareInterface(), "AndroidShare");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -187,5 +187,16 @@ public class MainActivity extends Activity {
             speechRecognizer.destroy();
         }
         super.onDestroy();
+    }
+    class ShareInterface {
+        @android.webkit.JavascriptInterface
+        public void share(String text) {
+            runOnUiThread(() -> {
+                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                intent.setType("text/plain");
+                intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+            });
+        }
     }
 }
