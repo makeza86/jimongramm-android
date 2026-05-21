@@ -189,14 +189,53 @@ public class MainActivity extends Activity {
         super.onDestroy();
     }
     class ShareInterface {
-        @android.webkit.JavascriptInterface
-        public void share(String text) {
-            runOnUiThread(() -> {
-                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                intent.setType("text/plain");
-                intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
-                startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
-            });
-        }
+    @android.webkit.JavascriptInterface
+    public void share(String text) {
+        runOnUiThread(() -> {
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+            startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+        });
     }
+
+    @android.webkit.JavascriptInterface
+    public void shareWithImage(String text, String imageUrl) {
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(imageUrl);
+                java.io.InputStream input = url.openStream();
+                java.io.File file = new java.io.File(getCacheDir(), "share_image.png");
+                java.io.FileOutputStream output = new java.io.FileOutputStream(file);
+                byte[] buffer = new byte[4096];
+                int n;
+                while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
+                output.close();
+                input.close();
+
+                android.net.Uri imageUri = androidx.core.content.FileProvider.getUriForFile(
+                    MainActivity.this,
+                    getPackageName() + ".provider",
+                    file
+                );
+
+                runOnUiThread(() -> {
+                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                    intent.setType("image/*");
+                    intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                    intent.putExtra(android.content.Intent.EXTRA_STREAM, imageUri);
+                    intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                    intent.setType("text/plain");
+                    intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                    startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+                });
+            }
+        }).start();
+    }
+}
 }
