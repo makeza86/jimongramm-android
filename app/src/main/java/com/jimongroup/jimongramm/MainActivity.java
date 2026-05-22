@@ -236,6 +236,40 @@ public class MainActivity extends Activity {
                 });
             }
         }).start();
+        @android.webkit.JavascriptInterface
+    public void downloadFile(String fileUrl, String fileName) {
+        new Thread(() -> {
+            try {
+                java.net.URL url = new java.net.URL(fileUrl);
+                java.io.InputStream input = url.openStream();
+                String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : "image/png";
+                String folder = fileUrl.endsWith(".mp4") ?
+                    android.os.Environment.DIRECTORY_MOVIES :
+                    android.os.Environment.DIRECTORY_PICTURES;
+                android.content.ContentValues values = new android.content.ContentValues();
+                values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+                values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
+                values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, folder + "/JimonGramm");
+                android.net.Uri uri = getContentResolver().insert(
+                    fileUrl.endsWith(".mp4") ?
+                        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                    values
+                );
+                java.io.OutputStream output = getContentResolver().openOutputStream(uri);
+                byte[] buffer = new byte[4096];
+                int n;
+                while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
+                output.close();
+                input.close();
+                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                    "✅ Сохранено в галерею", android.widget.Toast.LENGTH_SHORT).show());
+            } catch (Exception e) {
+                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                    "Ошибка сохранения", android.widget.Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
     }
 }
 }
