@@ -46,8 +46,8 @@ public class MainActivity extends Activity {
         settings.setGeolocationEnabled(true);
         settings.setUserAgentString(settings.getUserAgentString() + " JimonGrammApp/1.0");
 
-       webView.addJavascriptInterface(new VoiceInterface(), "AndroidVoice");
-       webView.addJavascriptInterface(new ShareInterface(), "AndroidShare");
+        webView.addJavascriptInterface(new VoiceInterface(), "AndroidVoice");
+        webView.addJavascriptInterface(new ShareInterface(), "AndroidShare");
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, String url) {
@@ -79,7 +79,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Запрашиваем разрешение на микрофон при старте
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -95,7 +94,6 @@ public class MainActivity extends Activity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == RECORD_AUDIO_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Разрешение получено
             }
         }
     }
@@ -103,7 +101,6 @@ public class MainActivity extends Activity {
     public class VoiceInterface {
         @JavascriptInterface
         public void startListening() {
-            // Проверяем разрешение перед запуском
             if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO)
                     != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(MainActivity.this,
@@ -122,10 +119,10 @@ public class MainActivity extends Activity {
                 speechRecognizer = android.speech.SpeechRecognizer.createSpeechRecognizer(MainActivity.this);
                 speechRecognizer.setRecognitionListener(new android.speech.RecognitionListener() {
                     @Override public void onReadyForSpeech(android.os.Bundle p) {
-                    webView.post(() -> webView.evaluateJavascript(
-                   "document.getElementById('voice-transcript') && (document.getElementById('voice-transcript').textContent = 'Слушаю...')", null
-                     ));
-                   }
+                        webView.post(() -> webView.evaluateJavascript(
+                            "document.getElementById('voice-transcript') && (document.getElementById('voice-transcript').textContent = 'Слушаю...')", null
+                        ));
+                    }
                     @Override public void onBeginningOfSpeech() {}
                     @Override public void onRmsChanged(float v) {}
                     @Override public void onBufferReceived(byte[] b) {}
@@ -188,88 +185,91 @@ public class MainActivity extends Activity {
         }
         super.onDestroy();
     }
+
     class ShareInterface {
-    @android.webkit.JavascriptInterface
-    public void share(String text) {
-        runOnUiThread(() -> {
-            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-            intent.setType("text/plain");
-            intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
-            startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
-        });
-    }
 
-    @android.webkit.JavascriptInterface
-    public void shareWithImage(String text, String imageUrl) {
-        new Thread(() -> {
-            try {
-                java.net.URL url = new java.net.URL(imageUrl);
-                java.io.InputStream input = url.openStream();
-                java.io.File file = new java.io.File(getCacheDir(), "share_image.png");
-                java.io.FileOutputStream output = new java.io.FileOutputStream(file);
-                byte[] buffer = new byte[4096];
-                int n;
-                while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
-                output.close();
-                input.close();
-
-                android.net.Uri imageUri = androidx.core.content.FileProvider.getUriForFile(
-                    MainActivity.this,
-                    getPackageName() + ".provider",
-                    file
-                );
-
-                runOnUiThread(() -> {
-                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                    intent.setType("image/*");
-                    intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
-                    intent.putExtra(android.content.Intent.EXTRA_STREAM, imageUri);
-                    intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
-                });
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                    intent.setType("text/plain");
-                    intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
-                    startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
-                });
-            }
-        }).start();
         @android.webkit.JavascriptInterface
-    public void downloadFile(String fileUrl, String fileName) {
-        new Thread(() -> {
-            try {
-                java.net.URL url = new java.net.URL(fileUrl);
-                java.io.InputStream input = url.openStream();
-                String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : "image/png";
-                String folder = fileUrl.endsWith(".mp4") ?
-                    android.os.Environment.DIRECTORY_MOVIES :
-                    android.os.Environment.DIRECTORY_PICTURES;
-                android.content.ContentValues values = new android.content.ContentValues();
-                values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-                values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
-                values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, folder + "/JimonGramm");
-                android.net.Uri uri = getContentResolver().insert(
-                    fileUrl.endsWith(".mp4") ?
-                        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
-                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                    values
-                );
-                java.io.OutputStream output = getContentResolver().openOutputStream(uri);
-                byte[] buffer = new byte[4096];
-                int n;
-                while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
-                output.close();
-                input.close();
-                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
-                    "✅ Сохранено в галерею", android.widget.Toast.LENGTH_SHORT).show());
-            } catch (Exception e) {
-                runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
-                    "Ошибка сохранения", android.widget.Toast.LENGTH_SHORT).show());
-            }
-        }).start();
+        public void share(String text) {
+            runOnUiThread(() -> {
+                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                intent.setType("text/plain");
+                intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+            });
+        }
+
+        @android.webkit.JavascriptInterface
+        public void shareWithImage(String text, String imageUrl) {
+            new Thread(() -> {
+                try {
+                    java.net.URL url = new java.net.URL(imageUrl);
+                    java.io.InputStream input = url.openStream();
+                    java.io.File file = new java.io.File(getCacheDir(), "share_image.png");
+                    java.io.FileOutputStream output = new java.io.FileOutputStream(file);
+                    byte[] buffer = new byte[4096];
+                    int n;
+                    while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
+                    output.close();
+                    input.close();
+
+                    android.net.Uri imageUri = androidx.core.content.FileProvider.getUriForFile(
+                        MainActivity.this,
+                        getPackageName() + ".provider",
+                        file
+                    );
+
+                    runOnUiThread(() -> {
+                        android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                        intent.setType("image/*");
+                        intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                        intent.putExtra(android.content.Intent.EXTRA_STREAM, imageUri);
+                        intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                        startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                        intent.setType("text/plain");
+                        intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+                        startActivity(android.content.Intent.createChooser(intent, "Поделиться"));
+                    });
+                }
+            }).start();
+        }
+
+        @android.webkit.JavascriptInterface
+        public void downloadFile(String fileUrl, String fileName) {
+            new Thread(() -> {
+                try {
+                    java.net.URL url = new java.net.URL(fileUrl);
+                    java.io.InputStream input = url.openStream();
+                    String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : "image/png";
+                    String folder = fileUrl.endsWith(".mp4") ?
+                        android.os.Environment.DIRECTORY_MOVIES :
+                        android.os.Environment.DIRECTORY_PICTURES;
+                    android.content.ContentValues values = new android.content.ContentValues();
+                    values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+                    values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
+                    values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, folder + "/JimonGramm");
+                    android.net.Uri uri = getContentResolver().insert(
+                        fileUrl.endsWith(".mp4") ?
+                            android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
+                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                        values
+                    );
+                    java.io.OutputStream output = getContentResolver().openOutputStream(uri);
+                    byte[] buffer = new byte[4096];
+                    int n;
+                    while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
+                    output.close();
+                    input.close();
+                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                        "✅ Сохранено в галерею", android.widget.Toast.LENGTH_SHORT).show());
+                } catch (Exception e) {
+                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                        "Ошибка сохранения", android.widget.Toast.LENGTH_SHORT).show());
+                }
+            }).start();
+        }
     }
-    }
-}
 }
