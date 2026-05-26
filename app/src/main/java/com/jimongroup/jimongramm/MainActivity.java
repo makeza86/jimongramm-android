@@ -238,40 +238,122 @@ public class MainActivity extends Activity {
         }
 
         @android.webkit.JavascriptInterface
-        public void downloadFile(String fileUrl, String fileName) {
-            new Thread(() -> {
-                try {
-                    java.net.URL url = new java.net.URL(fileUrl);
-                    java.io.InputStream input = url.openStream();
-                    String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : fileUrl.endsWith(".pdf") ? "application/pdf" : "image/png";
-                    String folder = fileUrl.endsWith(".mp4") ?
-                        android.os.Environment.DIRECTORY_MOVIES :
-                        fileUrl.endsWith(".pdf") ?
-                        android.os.Environment.DIRECTORY_DOWNLOADS :
-                        android.os.Environment.DIRECTORY_PICTURES;
-                    android.net.Uri contentUri = fileUrl.endsWith(".mp4") ?
-                        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
-                        fileUrl.endsWith(".pdf") ?
-                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI :
-                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-                    android.content.ContentValues values = new android.content.ContentValues();
-                    values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-                    values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
-                    values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, folder + "/JimonGramm");
-                    android.net.Uri uri = getContentResolver().insert(contentUri, values);
-                    java.io.OutputStream output = getContentResolver().openOutputStream(uri);
-                    byte[] buffer = new byte[4096];
-                    int n;
-                    while ((n = input.read(buffer)) != -1) output.write(buffer, 0, n);
-                    output.close();
-                    input.close();
-                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
-                        "✅ Сохранено в загрузки", android.widget.Toast.LENGTH_SHORT).show());
-                } catch (Exception e) {
-                    runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
-                        "Ошибка сохранения", android.widget.Toast.LENGTH_SHORT).show());
+public void downloadFile(String fileUrl, String fileName) {
+    new Thread(() -> {
+        try {
+            java.net.URL url = new java.net.URL(fileUrl);
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.connect();
+            int fileSize = connection.getContentLength();
+            java.io.InputStream input = connection.getInputStream();
+
+            String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : fileUrl.endsWith(".pdf") ? "application/pdf" : "image/png";
+            String folder = fileUrl.endsWith(".mp4") ?
+                android.os.Environment.DIRECTORY_MOVIES :
+                fileUrl.endsWith(".pdf") ?
+                android.os.Environment.DIRECTORY_DOWNLOADS :
+                android.os.Environment.DIRECTORY_PICTURES;
+            android.net.Uri contentUri = fileUrl.endsWith(".mp4") ?
+                android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
+                fileUrl.endsWith(".pdf") ?
+                android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI :
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+
+            android.content.ContentValues values = new android.content.ContentValues();
+            values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+            values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
+            values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, folder + "/JimonGramm");
+            android.net.Uri uri = getContentResolver().insert(contentUri, values);
+            java.io.OutputStream output = getContentResolver().openOutputStream(uri);
+
+            // Прогресс-бар в статус-баре
+            android.app.NotificationManager notifManager = (android.app.NotificationManager) getSystemService(android.content.Context.NOTIFICATION_SERVICE);
+            String channelId = "jimongramm_download";
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                android.app.NotificationChannel channel = new android.app.NotificationChannel(channelId, "Загрузки JimonGramm", android.app.NotificationManager.IMPORTANCE_LOW);
+                notifManager.createNotificationChannel(channel);
+            }
+            androidx.core.app.NotificationCompat.Builder builder = new androidx.core.app.NotificationCompat.Builder(MainActivity.this, channelId)
+                .setSmallIcon(android.R.drawable.stat_sys_download)
+                .setContentTitle("JimonGramm")
+                .setContentText("Загрузка...")
+                .setPriority(androidx.core.app.NotificationCompat.PRIORITY_LOW)
+                .setOngoing(true)
+                .setProgress(100, 0, fileSize <= 0);
+            int notifId = (int) System.currentTimeMillis();
+            notifManager.notify(notifId, builder.build());
+
+            byte[] buffer = new byte[4096];
+            int n;
+            long downloaded = 0;
+            while ((n = input.read(buffer)) != -1) {
+                output.write(buffer, 0, n);
+                downloaded += n;
+                if (fileSize > 0) {
+                    int progress = (int) (downloaded * 100 / fileSize);
+                    builder.setProgress(100, progress, false)
+                        .setContentText("Загрузка " + progress + "%");
+                    notifManager.notify(notifId, builder.build());
                 }
-            }).start();
+            }
+            output.close();
+            input.close();
+            connection.disconnect();
+
+            // Завершение
+            builder.setContentText("✅ Сохранено")
+                .setProgress(0, 0, false)
+                .setOngoing(false)
+                .setSmallIcon(android.R.drawable.stat_sys_download_done);
+            notifManager.notify(notifId, builder.build());
+
+            runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                "✅ Сохранено в загрузки", android.widget.Toast.LENGTH_LONG).show());
+        } catch (Exception e) {
+            runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                "Ошибка сохранения: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show());
         }
-    }
+    }).start();
+}
+
+@android.webkit.JavascriptInterface
+public void sharePdf(String fileUrl, String fileName) {
+    new Thread(() -> {
+        try {
+            java.net.URL url = new java.net.URL(fileUrl);
+            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.connect();
+            java.io.InputStream input = connection.getInputStream();
+            java.io.File file = new java.io.File(getCacheDir(), fileName);
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(file);
+            byte[] buffer = new byte[4096];
+            int n;
+            while ((n = input.read(buffer)) != -1) fos.write(buffer, 0, n);
+            fos.close();
+            input.close();
+            connection.disconnect();
+
+            android.net.Uri fileUri = androidx.core.content.FileProvider.getUriForFile(
+                MainActivity.this,
+                getPackageName() + ".provider",
+                file
+            );
+            runOnUiThread(() -> {
+                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                intent.setType("application/pdf");
+                intent.putExtra(android.content.Intent.EXTRA_STREAM, fileUri);
+                intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(android.content.Intent.createChooser(intent, "Поделиться каталогом"));
+            });
+        } catch (Exception e) {
+            runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
+                "Ошибка: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show());
+        }
+    }).start();
+   }
+ }
 }
