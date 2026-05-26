@@ -243,20 +243,22 @@ public class MainActivity extends Activity {
                 try {
                     java.net.URL url = new java.net.URL(fileUrl);
                     java.io.InputStream input = url.openStream();
-                    String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : "image/png";
+                    String mimeType = fileUrl.endsWith(".mp4") ? "video/mp4" : fileUrl.endsWith(".pdf") ? "application/pdf" : "image/png";
                     String folder = fileUrl.endsWith(".mp4") ?
                         android.os.Environment.DIRECTORY_MOVIES :
+                        fileUrl.endsWith(".pdf") ?
+                        android.os.Environment.DIRECTORY_DOWNLOADS :
                         android.os.Environment.DIRECTORY_PICTURES;
+                    android.net.Uri contentUri = fileUrl.endsWith(".mp4") ?
+                        android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
+                        fileUrl.endsWith(".pdf") ?
+                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI :
+                        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
                     android.content.ContentValues values = new android.content.ContentValues();
                     values.put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName);
                     values.put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimeType);
                     values.put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, folder + "/JimonGramm");
-                    android.net.Uri uri = getContentResolver().insert(
-                        fileUrl.endsWith(".mp4") ?
-                            android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI :
-                            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        values
-                    );
+                    android.net.Uri uri = getContentResolver().insert(contentUri, values);
                     java.io.OutputStream output = getContentResolver().openOutputStream(uri);
                     byte[] buffer = new byte[4096];
                     int n;
@@ -264,7 +266,7 @@ public class MainActivity extends Activity {
                     output.close();
                     input.close();
                     runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
-                        "✅ Сохранено в галерею", android.widget.Toast.LENGTH_SHORT).show());
+                        "✅ Сохранено в загрузки", android.widget.Toast.LENGTH_SHORT).show());
                 } catch (Exception e) {
                     runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
                         "Ошибка сохранения", android.widget.Toast.LENGTH_SHORT).show());
