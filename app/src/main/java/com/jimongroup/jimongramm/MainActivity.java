@@ -308,6 +308,7 @@ public void downloadFile(String fileUrl, String fileName) {
                 .setOngoing(false)
                 .setSmallIcon(android.R.drawable.stat_sys_download_done);
             notifManager.notify(notifId, builder.build());
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> notifManager.cancel(notifId), 3000);
 
             runOnUiThread(() -> android.widget.Toast.makeText(MainActivity.this,
                 "✅ Сохранено в загрузки", android.widget.Toast.LENGTH_LONG).show());
